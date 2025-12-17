@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Système de Déclaration d'Événements Indésirables - Hôpitaux Sénégal</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #16a085;
+            --light: #ecf0f1;
+            --dark: #34495e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header Officiel */
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header h2 {
+            font-size: 20px;
+            font-weight: 400;
+            opacity: 0.95;
+        }
+
+        /* Mode Selector */
+        .mode-selector {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 20px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .mode-btn.user {
+            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+        }
+
+        .mode-btn.admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .mode-btn.active {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        /* Main Content Area */
+        .content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--secondary);
+            font-size: 14px;
+        }
+
+        label .required {
+            color: var(--danger);
+        }
+
+        input, select, textarea {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .char-counter {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-group.error input,
+        .form-group.error select,
+        .form-group.error textarea {
+            border-color: var(--danger);
+        }
+
+        .form-group.error .error-message {
+            display: block;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--info));
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Admin Login */
+        .admin-login {
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        .admin-login h2 {
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .password-field input {
+            width: 100%;
+            padding-right: 50px;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card.total {
+            border-color: var(--primary);
+        }
+
+        .stat-card.critical {
+            border-color: var(--danger);
+        }
+
+        .stat-card.monthly {
+            border-color: var(--warning);
+        }
+
+        .stat-card.hospital {
+            border-color: var(--success);
+        }
+
+        .stat-card .icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Charts */
+        .charts-section {
+            margin: 30px 0;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .chart-container h3 {
+            margin-bottom: 15px;
+            color: var(--secondary);
+            font-size: 18px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Table Toolbar */
+        .table-toolbar {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .search-filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .filter-group select {
+            width: 100%;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background: var(--secondary);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+        }
+
+        th:hover {
+            background: var(--dark);
+        }
+
+        th .sort-icon {
+            position: absolute;
+            right: 8px;
+            font-size: 12px;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .badge.mineur {
+            background: var(--success);
+        }
+
+        .badge.modere {
+            background: var(--warning);
+        }
+
+        .badge.grave {
+            background: #e67e22;
+        }
+
+        .badge.critique {
+            background: var(--danger);
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            padding: 6px 12px;
+            margin: 0 3px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn.view {
+            background: var(--info);
+            color: white;
+        }
+
+        .action-btn.delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .action-btn:hover {
+            opacity: 0.8;
+            transform: scale(1.05);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .pagination-btn {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .items-per-page {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .items-per-page select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            position: relative;
+            margin: 20px;
+        }
+
+        .modal-header {
+            background: var(--secondary);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .detail-row {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            color: var(--secondary);
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .detail-value {
+            color: #333;
+            font-size: 15px;
+        }
+
+        /* Export Section */
+        .export-section {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-export {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            z-index: 2000;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .notification.success {
+            border-left: 5px solid var(--success);
+        }
+
+        .notification.error {
+            border-left: 5px solid var(--danger);
+        }
+
+        .notification.info {
+            border-left: 5px solid var(--info);
+        }
+
+        .notification button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            margin-left: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .header h2 {
+                font-size: 16px;
+            }
+
+            .mode-btn {
+                padding: 15px 25px;
+                font-size: 16px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-filter-row {
+                flex-direction: column;
+            }
+
+            .table-container {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px;
+            }
+
+            .export-section {
+                flex-direction: column;
+            }
+
+            .btn-export {
+                width: 100%;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Officiel -->
+        <div class="header">
+            <h1>🇸🇳 République du Sénégal - Ministère de la Santé et de l'Action Sociale</h1>
+            <h2>Système de Déclaration d'Événements Indésirables</h2>
+        </div>
+
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+            <button class="mode-btn user active" onclick="switchMode('user')">👤 Déclarer un Incident</button>
+            <button class="mode-btn admin" onclick="switchMode('admin')">🔧 Administration</button>
+        </div>
+
+        <!-- User Mode - Formulaire de Déclaration -->
+        <div id="userContent" class="content active">
+            <h2 style="margin-bottom: 25px; color: var(--secondary);">📋 Formulaire de Déclaration d'Incident</h2>
+            <form id="incidentForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>⏰ Date de l'incident <span class="required">*</span></label>
+                        <input type="date" id="date" name="date" required>
+                        <span class="error-message">La date est requise</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🕐 Heure de l'incident <span class="required">*</span></label>
+                        <input type="time" id="heure" name="heure" required>
+                        <span class="error-message">L'heure est requise</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🏥 Hôpital concerné <span class="required">*</span></label>
+                        <select id="hopital" name="hopital" required>
+                            <option value="">Sélectionnez un hôpital</option>
+                        </select>
+                        <span class="error-message">L'hôpital est requis</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🏢 Service/Département <span class="required">*</span></label>
+                        <select id="service" name="service" required>
+                            <option value="">Sélectionnez un service</option>
+                        </select>
+                        <span class="error-message">Le service est requis</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📌 Nature de l'événement <span class="required">*</span></label>
+                        <select id="nature" name="nature" required>
+                            <option value="">Sélectionnez une nature</option>
+                        </select>
+                        <span class="error-message">La nature est requise</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🔖 Type d'incident <span class="required">*</span></label>
+                        <select id="type" name="type" required>
+                            <option value="">Sélectionnez un type</option>
+                        </select>
+                        <span class="error-message">Le type est requis</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>⚠️ Niveau de gravité <span class="required">*</span></label>
+                        <select id="gravite" name="gravite" required>
+                            <option value="">Sélectionnez la gravité</option>
+                        </select>
+                        <span class="error-message">La gravité est requise</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>👨‍⚕️ Déclarant <span class="required">*</span></label>
+                        <select id="declarant" name="declarant" required>
+                            <option value="">Sélectionnez le déclarant</option>
+                        </select>
+                        <span class="error-message">Le déclarant est requis</span>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>📝 Description détaillée <span class="required">*</span></label>
+                        <textarea id="description" name="description" required minlength="20" placeholder="Décrivez l'incident en détail (minimum 20 caractères)"></textarea>
+                        <span class="char-counter" id="descCounter">0 / 20 caractères minimum</span>
+                        <span class="error-message">Description requise (minimum 20 caractères)</span>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>💥 Conséquences observées</label>
+                        <textarea id="consequences" name="consequences" minlength="10" placeholder="Décrivez les conséquences de l'incident (minimum 10 caractères)"></textarea>
+                        <span class="char-counter" id="consCounter">0 / 10 caractères minimum</span>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>🚑 Mesures prises immédiatement</label>
+                        <textarea id="mesures" name="mesures" minlength="10" placeholder="Décrivez les mesures prises (minimum 10 caractères)"></textarea>
+                        <span class="char-counter" id="mesuresCounter">0 / 10 caractères minimum</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 25px;">
+                    <button type="submit" class="btn btn-primary">✅ Déclarer l'Incident</button>
+                    <button type="reset" class="btn" style="background: #95a5a6; color: white;">🔄 Réinitialiser</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Admin Mode -->
+        <div id="adminContent" class="content">
+            <!-- Admin Login -->
+            <div id="adminLogin" class="admin-login">
+                <h2>🔐 Connexion Administrateur</h2>
+                <p style="margin-bottom: 20px; color: #666;">Veuillez entrer le mot de passe pour accéder au tableau de bord</p>
+                <div class="form-group">
+                    <div class="password-field">
+                        <input type="password" id="adminPassword" placeholder="Mot de passe" style="width: 100%;">
+                        <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
+                    </div>
+                    <span id="loginError" class="error-message" style="text-align: center; margin-top: 10px;"></span>
+                </div>
+                <button onclick="loginAdmin()" class="btn btn-primary" style="margin-top: 20px; width: 100%;">Se Connecter</button>
+            </div>
+
+            <!-- Admin Dashboard -->
+            <div id="adminDashboard" class="dashboard">
+                <h2 style="margin-bottom: 25px; color: var(--secondary);">📊 Tableau de Bord Administrateur</h2>
+                
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card total">
+                        <div class="icon">📊</div>
+                        <div class="value" id="statTotal">0</div>
+                        <div class="label">Total des Incidents</div>
+                    </div>
+                    <div class="stat-card critical">
+                        <div class="icon">⚠️</div>
+                        <div class="value" id="statCritical">0</div>
+                        <div class="label">Incidents Graves/Critiques</div>
+                    </div>
+                    <div class="stat-card monthly">
+                        <div class="icon">📅</div>
+                        <div class="value" id="statMonthly">0</div>
+                        <div class="label">Incidents ce mois</div>
+                    </div>
+                    <div class="stat-card hospital">
+                        <div class="icon">🏥</div>
+                        <div class="value" id="statTopHospital">-</div>
+                        <div class="label">Hôpital le plus touché</div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="charts-section">
+                    <h3 style="margin-bottom: 20px; color: var(--secondary);">📈 Graphiques et Statistiques</h3>
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <h3>Incidents par Type</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chartByType"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Incidents par Hôpital</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chartByHospital"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Incidents par Service</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chartByService"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Évolution Mensuelle</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chartMonthly"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Répartition par Gravité</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chartByGravity"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Incidents par Déclarant</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chartByDeclarant"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Incidents par Nature d'Événement</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chartByNature"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Toolbar -->
+                <div class="table-toolbar">
+                    <h3 style="margin-bottom: 15px; color: var(--secondary);">🔍 Recherche et Filtres</h3>
+                    <div class="search-filter-row">
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="🔎 Rechercher..." style="width: 100%;">
+                        </div>
+                        <div class="filter-group">
+                            <select id="filterHopital">
+                                <option value="">Tous les hôpitaux</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <select id="filterService">
+                                <option value="">Tous les services</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <select id="filterGravite">
+                                <option value="">Toutes les gravités</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <select id="filterType">
+                                <option value="">Tous les types</option>
+                            </select>
+                        </div>
+                        <button class="btn" style="background: #95a5a6; color: white;" onclick="resetFilters()">🔄 Réinitialiser</button>
+                    </div>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="export-section">
+                    <button class="btn btn-success btn-export" onclick="exportToExcel()">📊 Exporter vers Excel</button>
+                    <button class="btn btn-primary btn-export" onclick="exportToJSON()">📋 Exporter JSON</button>
+                    <button class="btn btn-export" style="background: #e74c3c; color: white;" onclick="generatePDF()">📄 Générer Rapport PDF</button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container">
+                    <table id="incidentsTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('id')">ID <span class="sort-icon">↕️</span></th>
+                                <th onclick="sortTable('date')">Date/Heure <span class="sort-icon">↕️</span></th>
+                                <th onclick="sortTable('hopital')">Hôpital <span class="sort-icon">↕️</span></th>
+                                <th onclick="sortTable('service')">Service <span class="sort-icon">↕️</span></th>
+                                <th onclick="sortTable('nature')">Nature <span class="sort-icon">↕️</span></th>
+                                <th onclick="sortTable('type')">Type <span class="sort-icon">↕️</span></th>
+                                <th onclick="sortTable('gravite')">Gravité <span class="sort-icon">↕️</span></th>
+                                <th onclick="sortTable('declarant')">Déclarant <span class="sort-icon">↕️</span></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <div class="items-per-page">
+                        <label>Afficher:</label>
+                        <select id="itemsPerPage" onchange="changeItemsPerPage()">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span id="paginationInfo" class="pagination-info"></span>
+                    </div>
+                    <div class="pagination-controls" id="paginationControls">
+                    </div>
+                </div>
+
+                <!-- Clear Data Button -->
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="btn btn-danger" onclick="clearAllData()" style="background: #c0392b;">🗑️ Vider Toutes les Données</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detail -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 Détails de l'Incident</h2>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmation -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header" style="background: var(--danger);">
+                <h2>⚠️ Confirmation</h2>
+                <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmMessage" style="font-size: 16px; margin-bottom: 25px;"></p>
+                <div style="display: flex; gap: 15px;">
+                    <button class="btn" style="background: #95a5a6; color: white; flex: 1;" onclick="closeConfirmModal()">Annuler</button>
+                    <button class="btn btn-danger" style="flex: 1;" onclick="confirmAction()">Confirmer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== DONNÉES ET VARIABLES GLOBALES ==========
+        let incidents = [];
+        let filteredIncidents = [];
+        let currentPage = 1;
+        let itemsPerPage = 25;
+        let sortColumn = 'date';
+        let sortDirection = 'desc';
+        let confirmCallback = null;
+        let chartInstances = {};
+
+        // Données de configuration
+        const hopitaux = [
+            'Hôpital Principal de Dakar',
+            'Hôpital Aristide Le Dantec',
+            'Hôpital Général de Grand Yoff',
+            'Centre Hospitalier Abass Ndao',
+            'Hôpital de Pikine',
+            'Hôpital Youssou Mbargane Diop de Rufisque',
+            'Hôpital Roi Baudouin de Guédiawaye',
+            'Hôpital Régional de Saint-Louis',
+            'Hôpital Régional de Thiès',
+            'Hôpital Régional de Ziguinchor',
+            'Hôpital Régional de Kaolack',
+            'Centre Hospitalier Régional de Diourbel'
+        ];
+
+        const services = [
+            'Urgences',
+            'Médecine Interne',
+            'Chirurgie Générale',
+            'Pédiatrie',
+            'Maternité/Obstétrique',
+            'Réanimation/Soins Intensifs',
+            'Cardiologie',
+            'Radiologie',
+            'Laboratoire',
+            'Pharmacie',
+            'Bloc Opératoire',
+            'Autres'
+        ];
+
+        const naturesEvenement = [
+            'Soins',
+            'Produit de santé (médicament, dispositif médical)',
+            'Infection associée aux soins',
+            'Accident d\'exposition au sang ou liquide biologique',
+            'Autre environnement/équipement',
+            'Autre'
+        ];
+
+        const typesIncident = [
+            'Erreur médicamenteuse',
+            'Chute de patient',
+            'Infection nosocomiale',
+            'Erreur d\'identification',
+            'Erreur de diagnostic',
+            'Erreur chirurgicale',
+            'Défaillance d\'équipement',
+            'Erreur de transfusion',
+            'Escarre/Ulcère de pression',
+            'Événement lié à l\'anesthésie',
+            'Retard de prise en charge',
+            'Perte de matériel dans le patient',
+            'Erreur de dosage',
+            'Erreur de site opératoire',
+            'Réaction allergique non prévue',
+            'Déconnexion accidentelle',
+            'Erreur de résultat de laboratoire',
+            'Défaut de communication',
+            'Manque de personnel',
+            'Autre'
+        ];
+
+        const gravites = ['Mineur', 'Modéré', 'Grave', 'Critique'];
+
+        const declarants = [
+            'Médecin',
+            'Infirmier(ère)',
+            'Pharmacien(ne)',
+            'Administrateur',
+            'Patient/Famille',
+            'Autre'
+        ];
+
+        const chartColors = [
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+            '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52BE80',
+            '#EC7063', '#5DADE2', '#F4D03F', '#AF7AC5', '#45B39D',
+            '#E59866', '#85929E', '#D7DBDD', '#FADBD8', '#D6EAF8'
+        ];
+
+        // ========== INITIALISATION ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Peupler les dropdowns
+            populateSelect('hopital', hopitaux);
+            populateSelect('service', services);
+            populateSelect('nature', naturesEvenement);
+            populateSelect('type', typesIncident);
+            populateSelect('gravite', gravites);
+            populateSelect('declarant', declarants);
+
+            // Peupler les filtres
+            populateSelect('filterHopital', hopitaux);
+            populateSelect('filterService', services);
+            populateSelect('filterGravite', gravites);
+            populateSelect('filterType', typesIncident);
+
+            // Initialiser la date et l'heure
+            setDefaultDateTime();
+
+            // Event listeners
+            setupEventListeners();
+
+            // Initialiser avec quelques données de test
+            initializeSampleData();
+        }
+
+        function populateSelect(id, options) {
+            const select = document.getElementById(id);
+            if (!select) return;
+            
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                select.appendChild(opt);
+            });
+        }
+
+        function setDefaultDateTime() {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().slice(0, 5);
+            
+            document.getElementById('date').value = dateStr;
+            document.getElementById('heure').value = timeStr;
+        }
+
+        function setupEventListeners() {
+            // Form validation
+            const form = document.getElementById('incidentForm');
+            form.addEventListener('submit', handleFormSubmit);
+            form.addEventListener('reset', handleFormReset);
+
+            // Character counters
+            document.getElementById('description').addEventListener('input', updateCharCounter);
+            document.getElementById('consequences').addEventListener('input', updateCharCounter);
+            document.getElementById('mesures').addEventListener('input', updateCharCounter);
+
+            // Search and filters
+            document.getElementById('searchInput').addEventListener('input', debounce(filterAndRender, 300));
+            document.getElementById('filterHopital').addEventListener('change', filterAndRender);
+            document.getElementById('filterService').addEventListener('change', filterAndRender);
+            document.getElementById('filterGravite').addEventListener('change', filterAndRender);
+            document.getElementById('filterType').addEventListener('change', filterAndRender);
+
+            // Admin password enter key
+            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') loginAdmin();
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function updateCharCounter(e) {
+            const textarea = e.target;
+            const counterId = textarea.id + 'Counter';
+            const counter = document.getElementById(counterId);
+            const minLength = textarea.getAttribute('minlength') || 0;
+            
+            if (counter) {
+                counter.textContent = `${textarea.value.length} / ${minLength} caractères minimum`;
+            }
+        }
+
+        // ========== GESTION DES MODES ==========
+        function switchMode(mode) {
+            const userBtn = document.querySelector('.mode-btn.user');
+            const adminBtn = document.querySelector('.mode-btn.admin');
+            const userContent = document.getElementById('userContent');
+            const adminContent = document.getElementById('adminContent');
+
+            if (mode === 'user') {
+                userBtn.classList.add('active');
+                adminBtn.classList.remove('active');
+                userContent.classList.add('active');
+                adminContent.classList.remove('active');
+            } else {
+                adminBtn.classList.add('active');
+                userBtn.classList.remove('active');
+                adminContent.classList.add('active');
+                userContent.classList.remove('active');
+                
+                // Reset admin login
+                document.getElementById('adminLogin').style.display = 'block';
+                document.getElementById('adminDashboard').classList.remove('active');
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('loginError').style.display = 'none';
+            }
+        }
+
+        // ========== FORMULAIRE DE DÉCLARATION ==========
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                showNotification('Veuillez remplir tous les champs requis correctement', 'error');
+                return;
+            }
+
+            const formData = new FormData(e.target);
+            const incident = {
+                id: 'INC-' + String(incidents.length + 1).padStart(5, '0'),
+                date: formData.get('date'),
+                heure: formData.get('heure'),
+                hopital: formData.get('hopital'),
+                service: formData.get('service'),
+                nature: formData.get('nature'),
+                type: formData.get('type'),
+                gravite: formData.get('gravite'),
+                declarant: formData.get('declarant'),
+                description: formData.get('description'),
+                consequences: formData.get('consequences') || 'Non spécifié',
+                mesures: formData.get('mesures') || 'Non spécifié',
+                timestamp: new Date().toISOString()
+            };
+
+            incidents.push(incident);
+            showNotification(`Incident déclaré avec succès ! Numéro de référence : ${incident.id}`, 'success');
+            
+            e.target.reset();
+            setDefaultDateTime();
+            
+            // Reset character counters
+            document.getElementById('descCounter').textContent = '0 / 20 caractères minimum';
+            document.getElementById('consCounter').textContent = '0 / 10 caractères minimum';
+            document.getElementById('mesuresCounter').textContent = '0 / 10 caractères minimum';
+        }
+
+        function handleFormReset() {
+            setTimeout(() => {
+                setDefaultDateTime();
+                document.querySelectorAll('.form-group').forEach(group => {
+                    group.classList.remove('error');
+                });
+            }, 0);
+        }
+
+        function validateForm() {
+            let isValid = true;
+            const form = document.getElementById('incidentForm');
+            const requiredFields = form.querySelectorAll('[required]');
+
+            requiredFields.forEach(field => {
+                const formGroup = field.closest('.form-group');
+                
+                if (!field.value || (field.tagName === 'TEXTAREA' && field.value.length < parseInt(field.getAttribute('minlength') || 0))) {
+                    formGroup.classList.add('error');
+                    isValid = false;
+                } else {
+                    formGroup.classList.remove('error');
+                }
+            });
+
+            return isValid;
+        }
+
+        // ========== ADMIN LOGIN ==========
+        function togglePassword() {
+            const passwordField = document.getElementById('adminPassword');
+            const toggleBtn = document.querySelector('.toggle-password');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleBtn.textContent = '🙈';
+            } else {
+                passwordField.type = 'password';
+                toggleBtn.textContent = '👁️';
+            }
+        }
+
+        function loginAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            const errorMsg = document.getElementById('loginError');
+
+            if (password === 'admin2024') {
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('adminDashboard').classList.add('active');
+                updateDashboard();
+                showNotification('Connexion réussie', 'success');
+            } else {
+                errorMsg.textContent = '❌ Mot de passe incorrect';
+                errorMsg.style.display = 'block';
+                showNotification('Mot de passe incorrect', 'error');
+            }
+        }
+
+        // ========== DASHBOARD ==========
+        function updateDashboard() {
+            updateStatistics();
+            updateCharts();
+            filterAndRender();
+        }
+
+        function updateStatistics() {
+            // Total incidents
+            document.getElementById('statTotal').textContent = incidents.length;
+
+            // Critical incidents
+            const criticalCount = incidents.filter(inc => 
+                inc.gravite === 'Grave' || inc.gravite === 'Critique'
+            ).length;
+            document.getElementById('statCritical').textContent = criticalCount;
+
+            // Monthly incidents
+            const currentMonth = new Date().getMonth();
+            const currentYear = new Date().getFullYear();
+            const monthlyCount = incidents.filter(inc => {
+                const incDate = new Date(inc.date);
+                return incDate.getMonth() === currentMonth && incDate.getFullYear() === currentYear;
+            }).length;
+            document.getElementById('statMonthly').textContent = monthlyCount;
+
+            // Top hospital
+            const hospitalCounts = {};
+            incidents.forEach(inc => {
+                hospitalCounts[inc.hopital] = (hospitalCounts[inc.hopital] || 0) + 1;
+            });
+            
+            let topHospital = '-';
+            let maxCount = 0;
+            for (const [hospital, count] of Object.entries(hospitalCounts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    topHospital = hospital;
+                }
+            }
+            
+            const statTopElement = document.getElementById('statTopHospital');
+            if (topHospital !== '-') {
+                statTopElement.textContent = topHospital.split(' ')[0] + '...';
+                statTopElement.title = topHospital;
+            } else {
+                statTopElement.textContent = '-';
+            }
+        }
+
+        function updateCharts() {
+            // Détruire les anciens graphiques
+            Object.values(chartInstances).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            chartInstances = {};
+
+            // 1. Par type
+            createBarChart('chartByType', incidents, 'type', 'Incidents par Type', true);
+
+            // 2. Par hôpital
+            createBarChart('chartByHospital', incidents, 'hopital', 'Incidents par Hôpital', false);
+
+            // 3. Par service
+            createBarChart('chartByService', incidents, 'service', 'Incidents par Service', true);
+
+            // 4. Évolution mensuelle
+            createMonthlyChart();
+
+            // 5. Par gravité (doughnut)
+            createDoughnutChart('chartByGravity', incidents, 'gravite');
+
+            // 6. Par déclarant (pie)
+            createPieChart('chartByDeclarant', incidents, 'declarant');
+
+            // 7. Par nature
+            createBarChart('chartByNature', incidents, 'nature', 'Incidents par Nature', false);
+        }
+
+        function createBarChart(canvasId, data, field, label, horizontal = false) {
+            const counts = {};
+            data.forEach(item => {
+                counts[item[field]] = (counts[item[field]] || 0) + 1;
+            });
+
+            const labels = Object.keys(counts);
+            const values = Object.values(counts);
+
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: values,
+                        backgroundColor: chartColors,
+                        borderColor: chartColors.map(c => c + 'CC'),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: horizontal ? 'y' : 'x',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createMonthlyChart() {
+            const monthCounts = {};
+            const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+            
+            incidents.forEach(inc => {
+                const date = new Date(inc.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+            });
+
+            const sortedKeys = Object.keys(monthCounts).sort();
+            const labels = sortedKeys.map(key => {
+                const [year, month] = key.split('-');
+                return `${monthNames[parseInt(month) - 1]} ${year}`;
+            });
+            const values = sortedKeys.map(key => monthCounts[key]);
+
+            const ctx = document.getElementById('chartMonthly');
+            if (!ctx) return;
+
+            chartInstances['chartMonthly'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nombre d\'incidents',
+                        data: values,
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#3498db'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f0f0f0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDoughnutChart(canvasId, data, field) {
+            const counts = {};
+            data.forEach(item => {
+                counts[item[field]] = (counts[item[field]] || 0) + 1;
+            });
+
+            const labels = Object.keys(counts);
+            const values = Object.values(counts);
+
+            const colors = {
+                'Mineur': '#27ae60',
+                'Modéré': '#f39c12',
+                'Grave': '#e67e22',
+                'Critique': '#e74c3c'
+            };
+
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: labels.map(label => colors[label] || chartColors[0]),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPieChart(canvasId, data, field) {
+            const counts = {};
+            data.forEach(item => {
+                counts[item[field]] = (counts[item[field]] || 0) + 1;
+            });
+
+            const labels = Object.keys(counts);
+            const values = Object.values(counts);
+
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: chartColors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // ========== FILTRAGE ET RECHERCHE ==========
+        function filterAndRender() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const hopitalFilter = document.getElementById('filterHopital').value;
+            const serviceFilter = document.getElementById('filterService').value;
+            const graviteFilter = document.getElementById('filterGravite').value;
+            const typeFilter = document.getElementById('filterType').value;
+
+            filteredIncidents = incidents.filter(inc => {
+                // Recherche textuelle
+                const matchSearch = !searchTerm || 
+                    Object.values(inc).some(val => 
+                        String(val).toLowerCase().includes(searchTerm)
+                    );
+
+                // Filtres
+                const matchHopital = !hopitalFilter || inc.hopital === hopitalFilter;
+                const matchService = !serviceFilter || inc.service === serviceFilter;
+                const matchGravite = !graviteFilter || inc.gravite === graviteFilter;
+                const matchType = !typeFilter || inc.type === typeFilter;
+
+                return matchSearch && matchHopital && matchService && matchGravite && matchType;
+            });
+
+            // Tri
+            sortIncidents();
+
+            // Reset à la page 1
+            currentPage = 1;
+            renderTable();
+        }
+
+        function resetFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterHopital').value = '';
+            document.getElementById('filterService').value = '';
+            document.getElementById('filterGravite').value = '';
+            document.getElementById('filterType').value = '';
+            filterAndRender();
+        }
+
+        // ========== TRI ==========
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'desc';
+            }
+            filterAndRender();
+        }
+
+        function sortIncidents() {
+            filteredIncidents.sort((a, b) => {
+                let aVal = a[sortColumn];
+                let bVal = b[sortColumn];
+
+                // Conversion en nombre si possible
+                if (!isNaN(aVal) && !isNaN(bVal)) {
+                    aVal = Number(aVal);
+                    bVal = Number(bVal);
+                }
+
+                if (sortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+        }
+
+        // ========== PAGINATION ==========
+        function changeItemsPerPage() {
+            itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
+            currentPage = 1;
+            renderTable();
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            renderTable();
+        }
+
+        // ========== RENDU DU TABLEAU ==========
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const pageData = filteredIncidents.slice(start, end);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 30px; color: #999;">Aucun incident trouvé</td></tr>';
+            } else {
+                tbody.innerHTML = pageData.map(inc => `
+                    <tr>
+                        <td><strong>${inc.id}</strong></td>
+                        <td>${formatDateTime(inc.date, inc.heure)}</td>
+                        <td>${inc.hopital}</td>
+                        <td>${inc.service}</td>
+                        <td>${inc.nature}</td>
+                        <td>${inc.type}</td>
+                        <td><span class="badge ${inc.gravite.toLowerCase()}">${inc.gravite}</span></td>
+                        <td>${inc.declarant}</td>
+                        <td>
+                            <button class="action-btn view" onclick="viewIncident('${inc.id}')">👁️ Détails</button>
+                            <button class="action-btn delete" onclick="confirmDelete('${inc.id}')">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalItems = filteredIncidents.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const start = (currentPage - 1) * itemsPerPage + 1;
+            const end = Math.min(start + itemsPerPage - 1, totalItems);
+
+            // Info
+            document.getElementById('paginationInfo').textContent = 
+                `Affichage ${start}-${end} sur ${totalItems} incident(s)`;
+
+            // Controls
+            const controls = document.getElementById('paginationControls');
+            let html = '';
+
+            // Previous button
+            html += `<button class="pagination-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Précédent</button>`;
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                    html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 2 || i === currentPage + 2) {
+                    html += '<span style="padding: 0 5px;">...</span>';
+                }
+            }
+
+            // Next button
+            html += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}>Suivant →</button>`;
+
+            controls.innerHTML = html;
+        }
+
+        function formatDateTime(date, time) {
+            const d = new Date(date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${day}/${month}/${year} ${time}`;
+        }
+
+        // ========== MODAL DÉTAILS ==========
+        function viewIncident(id) {
+            const incident = incidents.find(inc => inc.id === id);
+            if (!incident) return;
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="detail-row">
+                    <div class="detail-label">ID de Référence</div>
+                    <div class="detail-value"><strong>${incident.id}</strong></div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Date et Heure</div>
+                    <div class="detail-value">${formatDateTime(incident.date, incident.heure)}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Hôpital</div>
+                    <div class="detail-value">${incident.hopital}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Service/Département</div>
+                    <div class="detail-value">${incident.service}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Nature de l'événement</div>
+                    <div class="detail-value">${incident.nature}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Type d'incident</div>
+                    <div class="detail-value">${incident.type}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Niveau de gravité</div>
+                    <div class="detail-value"><span class="badge ${incident.gravite.toLowerCase()}">${incident.gravite}</span></div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Déclaré par</div>
+                    <div class="detail-value">${incident.declarant}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Description détaillée</div>
+                    <div class="detail-value">${incident.description}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Conséquences observées</div>
+                    <div class="detail-value">${incident.consequences}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Mesures prises</div>
+                    <div class="detail-value">${incident.mesures}</div>
+                </div>
+            `;
+
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('active');
+        }
+
+        // ========== CONFIRMATION ET SUPPRESSION ==========
+        function confirmDelete(id) {
+            document.getElementById('confirmMessage').textContent = 
+                'Êtes-vous sûr de vouloir supprimer cet incident ?';
+            document.getElementById('confirmModal').classList.add('active');
+            confirmCallback = () => deleteIncident(id);
+        }
+
+        function deleteIncident(id) {
+            incidents = incidents.filter(inc => inc.id !== id);
+            showNotification('Incident supprimé avec succès', 'success');
+            updateDashboard();
+            closeConfirmModal();
+        }
+
+        function clearAllData() {
+            document.getElementById('confirmMessage').textContent = 
+                'ATTENTION : Cette action supprimera TOUS les incidents. Êtes-vous sûr ?';
+            document.getElementById('confirmModal').classList.add('active');
+            confirmCallback = () => {
+                incidents = [];
+                showNotification('Toutes les données ont été supprimées', 'info');
+                updateDashboard();
+                closeConfirmModal();
+            };
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+            confirmCallback = null;
+        }
+
+        function confirmAction() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+        }
+
+        // ========== EXPORTS ==========
+        function exportToExcel() {
+            if (incidents.length === 0) {
+                showNotification('Aucune donnée à exporter', 'error');
+                return;
+            }
+
+            const data = incidents.map(inc => ({
+                'ID': inc.id,
+                'Date': inc.date,
+                'Heure': inc.heure,
+                'Hôpital': inc.hopital,
+                'Service': inc.service,
+                'Nature': inc.nature,
+                'Type': inc.type,
+                'Gravité': inc.gravite,
+                'Déclarant': inc.declarant,
+                'Description': inc.description,
+                'Conséquences': inc.consequences,
+                'Mesures': inc.mesures
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Incidents');
+            XLSX.writeFile(wb, `incidents_${new Date().toISOString().split('T')[0]}.xlsx`);
+            
+            showNotification('Export Excel réalisé avec succès', 'success');
+        }
+
+        function exportToJSON() {
+            if (incidents.length === 0) {
+                showNotification('Aucune donnée à exporter', 'error');
+                return;
+            }
+
+            const dataStr = JSON.stringify(incidents, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `incidents_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            showNotification('Export JSON réalisé avec succès', 'success');
+        }
+
+        function generatePDF() {
+            if (incidents.length === 0) {
+                showNotification('Aucune donnée à exporter', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Header
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text('République du Sénégal', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('Ministère de la Santé et de l\'Action Sociale', 105, 28, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text('Rapport d\'Incidents Hospitaliers', 105, 36, { align: 'center' });
+            
+            // Date
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Généré le: ${new Date().toLocaleDateString('fr-FR')}`, 105, 44, { align: 'center' });
+            
+            // Statistics
+            let y = 55;
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Statistiques Générales', 20, y);
+            y += 8;
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Total des incidents: ${incidents.length}`, 20, y);
+            y += 6;
+            const criticalCount = incidents.filter(inc => inc.gravite === 'Grave' || inc.gravite === 'Critique').length;
+            doc.text(`Incidents graves/critiques: ${criticalCount}`, 20, y);
+            y += 10;
+            
+            // Table header
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text('Liste des Incidents', 20, y);
+            y += 8;
+            
+            // Table data (limited to first 20)
+            doc.setFontSize(8);
+            const displayIncidents = incidents.slice(0, 20);
+            displayIncidents.forEach((inc, index) => {
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+                
+                doc.setFont(undefined, 'bold');
+                doc.text(`${inc.id}`, 20, y);
+                doc.setFont(undefined, 'normal');
+                doc.text(`${inc.date} - ${inc.hopital}`, 50, y);
+                y += 5;
+                doc.text(`${inc.type} (${inc.gravite})`, 20, y);
+                y += 8;
+            });
+            
+            if (incidents.length > 20) {
+                doc.text(`... et ${incidents.length - 20} autres incidents`, 20, y);
+            }
+            
+            // Footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.text(`Page ${i} sur ${pageCount}`, 105, 290, { align: 'center' });
+            }
+            
+            doc.save(`rapport_incidents_${new Date().toISOString().split('T')[0]}.pdf`);
+            showNotification('Rapport PDF généré avec succès', 'success');
+        }
+
+        // ========== NOTIFICATIONS ==========
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <span style="flex: 1;">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} ${message}</span>
+                <button onclick="this.parentElement.remove()">×</button>
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // ========== DONNÉES DE TEST ==========
+        function initializeSampleData() {
+            // Ajouter quelques incidents de test
+            const sampleIncidents = [
+                {
+                    id: 'INC-00001',
+                    date: '2025-10-15',
+                    heure: '14:30',
+                    hopital: 'Hôpital Principal de Dakar',
+                    service: 'Urgences',
+                    nature: 'Soins',
+                    type: 'Chute de patient',
+                    gravite: 'Modéré',
+                    declarant: 'Infirmier(ère)',
+                    description: 'Patient âgé a fait une chute en se levant du lit malgré les consignes de sécurité données.',
+                    consequences: 'Contusion au bras droit, surveillance mise en place',
+                    mesures: 'Installation d\'une barrière de lit, surveillance renforcée',
+                    timestamp: '2025-10-15T14:35:00Z'
+                },
+                {
+                    id: 'INC-00002',
+                    date: '2025-10-18',
+                    heure: '09:15',
+                    hopital: 'Hôpital Aristide Le Dantec',
+                    service: 'Pharmacie',
+                    nature: 'Produit de santé (médicament, dispositif médical)',
+                    type: 'Erreur médicamenteuse',
+                    gravite: 'Grave',
+                    declarant: 'Pharmacien(ne)',
+                    description: 'Erreur de dosage détectée avant administration. Le médicament prescrit avait un dosage deux fois supérieur à la normale.',
+                    consequences: 'Aucune car détectée avant administration',
+                    mesures: 'Vérification renforcée, formation du personnel',
+                    timestamp: '2025-10-18T09:20:00Z'
+                },
+                {
+                    id: 'INC-00003',
+                    date: '2025-10-22',
+                    heure: '16:45',
+                    hopital: 'Hôpital Régional de Thiès',
+                    service: 'Bloc Opératoire',
+                    nature: 'Autre environnement/équipement',
+                    type: 'Défaillance d\'équipement',
+                    gravite: 'Critique',
+                    declarant: 'Médecin',
+                    description: 'Panne du système de ventilation pendant une intervention chirurgicale, nécessitant un transfert d\'urgence du patient.',
+                    consequences: 'Intervention reportée, patient transféré',
+                    mesures: 'Maintenance d\'urgence, vérification de tous les équipements',
+                    timestamp: '2025-10-22T17:00:00Z'
+                },
+                {
+                    id: 'INC-00004',
+                    date: '2025-10-25',
+                    heure: '11:20',
+                    hopital: 'Hôpital de Pikine',
+                    service: 'Pédiatrie',
+                    nature: 'Infection associée aux soins',
+                    type: 'Infection nosocomiale',
+                    gravite: 'Grave',
+                    declarant: 'Médecin',
+                    description: 'Détection d\'une infection nosocomiale chez un patient pédiatrique hospitalisé depuis 5 jours.',
+                    consequences: 'Traitement antibiotique mis en place, isolement du patient',
+                    mesures: 'Renforcement des protocoles d\'hygiène, enquête épidémiologique',
+                    timestamp: '2025-10-25T11:30:00Z'
+                },
+                {
+                    id: 'INC-00005',
+                    date: '2025-10-28',
+                    heure: '08:00',
+                    hopital: 'Centre Hospitalier Abass Ndao',
+                    service: 'Maternité/Obstétrique',
+                    nature: 'Soins',
+                    type: 'Retard de prise en charge',
+                    gravite: 'Modéré',
+                    declarant: 'Patient/Famille',
+                    description: 'Délai d\'attente prolongé aux urgences obstétricales en raison du manque de personnel disponible.',
+                    consequences: 'Anxiété de la patiente, prise en charge avec 45 minutes de retard',
+                    mesures: 'Réorganisation des plannings, appel de personnel supplémentaire',
+                    timestamp: '2025-10-28T08:50:00Z'
+                }
+            ];
+
+            incidents = sampleIncidents;
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const detailModal = document.getElementById('detailModal');
+            const confirmModal = document.getElementById('confirmModal');
+            
+            if (event.target === detailModal) {
+                closeModal();
+            }
+            if (event.target === confirmModal) {
+                closeConfirmModal();
+            }
+        }
+    </script>
+</body>
+</html>
